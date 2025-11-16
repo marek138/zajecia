@@ -1,6 +1,7 @@
-def is_palindrome(tekst:str)->bool:
+def is_palindrome(tekst: str) -> bool:
     cleaned = tekst.replace(" ", "").lower()
     return cleaned == cleaned[::-1]
+
 
 def fibonacci(n: int) -> int:
     if n < 0:
@@ -13,6 +14,14 @@ def fibonacci(n: int) -> int:
         a, b = b, a + b
     return b
 
-def count_vowels(tekst:str)-> int:
+
+def count_vowels(tekst: str) -> int:
     vowels = 'aeiouyąęó'
     return sum(1 for char in tekst.lower() if char in vowels)
+
+
+def calculate_discount(price: float, discount: float) -> float:
+    if discount < 0 or discount > 1:
+        raise ValueError
+    else:
+        return price - (price * discount)
