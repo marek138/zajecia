@@ -12,3 +12,7 @@ def fibonacci(n: int) -> int:
     for _ in range(2, n + 1):
         a, b = b, a + b
     return b
+
+def count_vowels(tekst:str)-> int:
+    vowels = 'aeiouyąęó'
+    return sum(1 for char in tekst.lower() if char in vowels)
