@@ -25,3 +25,13 @@ def calculate_discount(price: float, discount: float) -> float:
         raise ValueError
     else:
         return price - (price * discount)
+
+
+def flatten_list(nested_list: list) -> list:
+    result = []
+    for item in nested_list:
+        if isinstance(item, list):
+            result.extend(flatten_list(item))
+        else:
+            result.append(item)
+    return result
