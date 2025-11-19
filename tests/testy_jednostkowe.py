@@ -3,6 +3,8 @@ from testy_jednostkowe_log import is_palindrome
 from testy_jednostkowe_log import fibonacci
 from testy_jednostkowe_log import count_vowels
 from testy_jednostkowe_log import calculate_discount
+from testy_jednostkowe_log import word_frequencies
+from testy_jednostkowe_log import flatten_list
 
 @pytest.mark.parametrize("text, expected", [
     ("kajak", True),
@@ -54,3 +56,13 @@ def test_calculate_discount(price,discount, expected):
             calculate_discount(price,discount)
     else:
         assert calculate_discount(price,discount) == expected
+
+@pytest.mark.parametrize('tekst, expected', [
+    ([1,2,3],[1,2,3]),
+    ([1,[2,3],[4,[5]]],[1,2,3,4,5]),
+    ([],[]),
+    ([[[1]]],[1]),
+    ([1, [2, [3, [4]]]],[1,2,3,4])
+])
+def test_flatten_list(tekst, expected):
+    assert flatten_list(tekst) == expected
