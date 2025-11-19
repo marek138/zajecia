@@ -5,6 +5,7 @@ from testy_jednostkowe_log import count_vowels
 from testy_jednostkowe_log import calculate_discount
 from testy_jednostkowe_log import word_frequencies
 from testy_jednostkowe_log import flatten_list
+from testy_jednostkowe_log import is_prime
 
 @pytest.mark.parametrize("text, expected", [
     ("kajak", True),
@@ -77,3 +78,16 @@ def test_flatten_list(tekst, expected):
 
 def test_word_frequencies(tekst,expected):
     assert word_frequencies(tekst) == expected
+
+@pytest.mark.parametrize('n, expected', [
+    (2,True),
+    (3,True),
+    (4,False),
+    (0,False),
+    (1,False),
+    (5,False),
+    (97,True)
+])
+def test_is_prime(n, expected):
+    assert is_prime(n) == expected
+
