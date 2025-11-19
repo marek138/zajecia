@@ -35,3 +35,20 @@ def flatten_list(nested_list: list) -> list:
         else:
             result.append(item)
     return result
+
+def word_frequencies(text: str) -> dict:
+    filtered = ""
+    for char in text:
+        if char.isalpha() or char == " ":
+            filtered += char.lower()
+
+    if not filtered.strip():
+        return {}
+
+    words = filtered.split()
+    frequencies = {}
+
+    for word in words:
+        frequencies[word] = frequencies.get(word, 0) + 1
+
+    return frequencies

@@ -66,3 +66,14 @@ def test_calculate_discount(price,discount, expected):
 ])
 def test_flatten_list(tekst, expected):
     assert flatten_list(tekst) == expected
+
+@pytest.mark.parametrize('tekst, expected', [
+    ("To be or not to be", {"to": 2, "be": 2, "or": 1, "not": 1}),
+    ("Hello, hello!", {"hello":2}),
+    ("",{}),
+    ("Python Python python", {"python": 3}),
+    ("Ala ma kota, a kot ma Ale.", {'ala':1,'ma':2,'kota':1,'a':1, 'kot':1,'ale':1})
+])
+
+def test_word_frequencies(tekst,expected):
+    assert word_frequencies(tekst) == expected
