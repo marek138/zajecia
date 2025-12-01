@@ -1,3 +1,5 @@
+from pickle import FALSE
+
 import pytest
 from testy_jednostkowe_log import is_palindrome
 from testy_jednostkowe_log import fibonacci
