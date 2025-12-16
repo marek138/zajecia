@@ -1,114 +1,224 @@
-from fastapi import FastAPI
-import  csv
+from fastapi import FastAPI, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from sqlalchemy import select
+
+from database import engine
+from models import Movie, Link, Rating, Tag
 
 app = FastAPI()
 
-class Movie:
-    def __init__(self,movieId: int, title: str, genres: str):
-        self.movieId = movieId
-        self.title = title
-        self.genres = genres
 
-def load_movies(filename: str) -> list[Movie]:
-    movies: list[Movie] = []
-    with open(filename) as f:
-        csv_reader = csv.DictReader(f)
-        for row in csv_reader:
-            movie = Movie(
-                movieId=int(row["movieId"]),
-                title=row["title"],
-                genres=row["genres"]
-            )
-            movies.append(movie)
-    return movies
+def get_session():
+    with Session(engine) as session:
+        yield session
 
-class Rating:
-    def __init__(self, userId: int, movieId: int, rating: float, timestamp: int):
-        self.userId = userId
-        self.movieId = movieId
-        self.rating = rating
-        self.timestamp = timestamp
-
-def load_ratings(filename: str) -> list[Rating]:
-    ratings: list[Rating] = []
-    with open(filename) as f:
-        csv_reader = csv.DictReader(f)
-        for row in csv_reader:
-            rating = Rating(
-                userId=int(row['userId']),
-                movieId=int(row["movieId"]),
-                rating=float(row['rating']),
-                timestamp=int(row['timestamp'])
-            )
-            ratings.append(rating)
-    return ratings
-
-class Link:
-    def __init__(self, movieId: int, imdbId: str, tmdbId: str):
-        self.movieId = movieId
-        self.imdbId = imdbId
-        self.tmdbId = tmdbId
-
-def load_links(filename: str) -> list[Link]:
-    links: list[Link] = []
-    with open(filename) as f:
-        csv_reader = csv.DictReader(f)
-        for row in csv_reader:
-            link = Link(
-                movieId=int(row["movieId"]),
-                imdbId=row['imdbId'],
-                tmdbId=row['tmdbId']
-            )
-            links.append(link)
-    return links
-
-class Tag:
-    def __init__(self, userId: int, movieId: int, tag: str, timestamp: int):
-        self.userId = userId
-        self.movieId = movieId
-        self.tag = tag
-        self.timestamp = timestamp
-
-def load_tags(filename: str) -> list[Tag]:
-    tags: list[Tag] = []
-    with open(filename) as f:
-        csv_reader = csv.DictReader(f)
-        for row in csv_reader:
-            tag = Tag(
-                userId=int(row['userId']),
-                movieId=int(row["movieId"]),
-                tag=row['tag'],
-                timestamp=int(row['timestamp'])
-            )
-            tags.append(tag)
-    return tags
-
-@app.get("/")
-def read_root():
-    return {"hello": "world"}
 @app.get("/movies")
-def get_movies():
-    movies = load_movies("/Users/marek/Downloads/database/movies.csv")
-    serialized_movies = [movie.__dict__ for movie in movies]
-    return serialized_movies
+def get_movies(session: Session = Depends(get_session)):
+    stmt = select(Movie)
+    movies = session.scalars(stmt).all()
+    return [
+        {
+            "movieId": m.movieId,
+            "title": m.title,
+            "genres": m.genres,
+        }
+        for m in movies
+    ]
 
-@app.get('/ratings')
-def get_ratings():
-    ratings = load_ratings('/Users/marek/Downloads/database/ratings.csv')
-    serialized_ratings = [rating.__dict__ for rating in ratings]
-    return serialized_ratings
+@app.post("/movies", status_code=status.HTTP_201_CREATED)
+def create_movie(body:dict, session: Session = Depends(get_session)):
+    if session.get(Movie, body["movieId"]) is not None:
+        raise HTTPException(status_code=400, detail="Movie already exists")
+    movie = Movie(movieId=body["movieId"], title=body["title"],genres=body["genres"])
+    session.add(movie)
+    session.commit()
+    session.refresh(movie)
+    return movie
 
-@app.get('/links')
-def get_links():
-    links = load_links('/Users/marek/Downloads/database/links.csv')
-    serialized_links = [link.__dict__ for link in links]
-    return serialized_links
+@app.get("/movies/{movie_id}", status_code=status.HTTP_200_OK)
+def get_movie(movie_id:int, session: Session = Depends(get_session)):
+    movie = session.get(Movie, movie_id)
+    if movie is None:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    return movie
 
-@app.get('/tags')
-def get_tags():
-    tags = load_tags('/Users/marek/Downloads/database/tags.csv')
-    serialized_tags = [tag.__dict__ for tag in tags]
-    return serialized_tags
+@app.put("/movies/{movie_id}", status_code=status.HTTP_200_OK)
+def update_movie(movie_id: int, body: dict, session: Session = Depends(get_session)):
+    movie = session.get(Movie, movie_id)
+    if movie is None:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    movie.title = body["title"]
+    movie.genres = body["genres"]
+    session.commit()
+    session.refresh(movie)
+    return movie
+
+@app.delete("/movies/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_movie(movie_id: int, session: Session = Depends(get_session)):
+    movie = session.get(Movie, movie_id)
+    if movie is None:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    session.delete(movie)
+    session.commit()
+    return None
+
+@app.get("/links")
+def get_links(session: Session = Depends(get_session)):
+    stmt = select(Link)
+    links = session.scalars(stmt).all()
+    return [
+        {
+            "movieId": l.movieId,
+            "imdbId": l.imdbId,
+            "tmdbId": l.tmdbId,
+        }
+        for l in links
+    ]
+
+@app.post("/links", status_code=status.HTTP_201_CREATED)
+def create_link(body: dict, session: Session = Depends(get_session)):
+    if session.get(Link, body["movieId"]) is not None:
+        raise HTTPException(status_code=400, detail="Link already exists")
+    link = Link(movieId=body["movieId"], imdbId=body["imdbId"], tmdbId=body["tmdbId"])
+    session.add(link)
+    session.commit()
+    session.refresh(link)
+    return link
+
+@app.get("/links/{movie_id}", status_code=status.HTTP_200_OK)
+def get_link(movie_id: int, session: Session = Depends(get_session)):
+    link = session.get(Link, movie_id)
+    if link is None:
+        raise HTTPException(status_code=404, detail="Link not found")
+    return link
+
+@app.put("/links/{movie_id}", status_code=status.HTTP_200_OK)
+def update_link(movie_id: int, body: dict, session: Session = Depends(get_session)):
+    link = session.get(Link, movie_id)
+    if link is None:
+        raise HTTPException(status_code=404, detail="Link not found")
+    link.imdbId = body["imdbId"]
+    link.tmdbId = body["tmdbId"]
+    session.commit()
+    session.refresh(link)
+    return link
+
+@app.delete("/links/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_link(movie_id: int, session: Session = Depends(get_session)):
+    link = session.get(Link, movie_id)
+    if link is None:
+        raise HTTPException(status_code=404, detail="Link not found")
+    session.delete(link)
+    session.commit()
+    return None
+
+@app.get("/ratings")
+def get_ratings(session: Session = Depends(get_session)):
+    stmt = select(Rating)
+    ratings = session.scalars(stmt).all()
+
+    return [
+        {
+            "id": r.id,
+            "userId": r.userId,
+            "movieId": r.movieId,
+            "rating": r.rating,
+            "timestamp": r.timestamp,
+        }
+        for r in ratings
+    ]
+
+@app.post("/ratings", status_code=status.HTTP_201_CREATED)
+def create_rating(body: dict, session: Session = Depends(get_session)):
+    rating = Rating(userId=body["userId"],movieId=body["movieId"],rating=body["rating"],timestamp=body["timestamp"])
+    session.add(rating)
+    session.commit()
+    session.refresh(rating)
+    return rating
+
+@app.get("/ratings/{rating_id}", status_code=status.HTTP_200_OK)
+def get_rating(rating_id: int, session: Session = Depends(get_session)):
+    rating = session.get(Rating, rating_id)
+    if rating is None:
+        raise HTTPException(status_code=404, detail="Rating not found")
+    return rating
+
+@app.put("/ratings/{rating_id}", status_code=status.HTTP_200_OK)
+def update_rating(rating_id: int, body: dict, session: Session = Depends(get_session)):
+    rating = session.get(Rating, rating_id)
+    if rating is None:
+        raise HTTPException(status_code=404, detail="Rating not found")
+    rating.userId = body["userId"]
+    rating.movieId = body["movieId"]
+    rating.rating = body["rating"]
+    rating.timestamp = body["timestamp"]
+    session.commit()
+    session.refresh(rating)
+    return rating
+
+@app.delete("/ratings/{rating_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_rating(rating_id: int, session: Session = Depends(get_session)):
+    rating = session.get(Rating, rating_id)
+    if rating is None:
+        raise HTTPException(status_code=404, detail="Rating not found")
+    session.delete(rating)
+    session.commit()
+    return None
 
 
+@app.get("/tags")
+def get_tags(session: Session = Depends(get_session)):
+    stmt = select(Tag)
+    tags = session.scalars(stmt).all()
+    return [
+        {
+            "id": t.id,
+            "userId": t.userId,
+            "movieId": t.movieId,
+            "tag": t.tag,
+            "timestamp": t.timestamp,
+        }
+        for t in tags
+    ]
 
+@app.post("/tags", status_code=status.HTTP_201_CREATED)
+def create_tag(body: dict, session: Session = Depends(get_session)):
+    tag = Tag(
+        userId=body["userId"],
+        movieId=body["movieId"],
+        tag=body["tag"],
+        timestamp=body["timestamp"],
+    )
+    session.add(tag)
+    session.commit()
+    session.refresh(tag)
+    return tag
+
+@app.get("/tags/{tag_id}", status_code=status.HTTP_200_OK)
+def get_tag(tag_id: int, session: Session = Depends(get_session)):
+    tag = session.get(Tag, tag_id)
+    if tag is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    return tag
+
+@app.put("/tags/{tag_id}", status_code=status.HTTP_200_OK)
+def update_tag(tag_id: int, body: dict, session: Session = Depends(get_session)):
+    tag = session.get(Tag, tag_id)
+    if tag is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    tag.userId = body["userId"]
+    tag.movieId = body["movieId"]
+    tag.tag = body["tag"]
+    tag.timestamp = body["timestamp"]
+    session.commit()
+    session.refresh(tag)
+    return tag
+
+@app.delete("/tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_tag(tag_id: int, session: Session = Depends(get_session)):
+    tag = session.get(Tag, tag_id)
+    if tag is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    session.delete(tag)
+    session.commit()
+    return None
