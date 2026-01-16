@@ -24,18 +24,17 @@ class PlateRecognizer:
     def fix_common_errors(self, text):
 
         int_to_char = {'0': 'O', '1': 'I', '2': 'Z', '3': 'B', '4': 'A', '5': 'S', '6': 'G', '8': 'B'}
-        char_to_int = {'O': '0', 'I': '1', 'Z': '2', 'B': '8', 'S': '5', 'G': '6', 'D': '0', 'Q': '0'}
 
         text_list = list(text)
+
+        # dwa pierwsze znaki litery
+        for i in range(min(len(text), 2)):
+            if text_list[i] in int_to_char:
+                text_list[i] = int_to_char[text_list[i]]
 
         #rejestracje głównie S__
         if text_list[0] in ['G','B','C','I','P']:
             text_list[0] = 'S'
-
-        #dwa pierwsze znaki zawsze litery
-        for i in range(min(len(text), 2)):
-            if text_list[i] in int_to_char:
-                text_list[i] = int_to_char[text_list[i]]
 
         return "".join(text_list)
 

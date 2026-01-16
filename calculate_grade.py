@@ -9,7 +9,6 @@
 import os
 import xml.etree.ElementTree as ET
 import time
-import cv2
 import re
 from ocr import PlateRecognizer
 
@@ -17,8 +16,6 @@ XML_FILE = "dataset/annotations.xml"
 IMAGES_DIR = "dataset/images"
 LIMIT_IMAGES = 100
 
-
-# --- FUNKCJE POMOCNICZE ---
 
 def calculate_iou(boxA, boxB):
     # Współrzędne przecięcia (Intersection)
@@ -40,6 +37,7 @@ def calculate_iou(boxA, boxB):
 
 
 def calculate_final_grade(accuracy_percent: float, processing_time_sec: float) -> float:
+
     if accuracy_percent < 60 or processing_time_sec > 60:
         return 2.0
 
